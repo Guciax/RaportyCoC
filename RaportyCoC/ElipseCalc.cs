@@ -8,7 +8,7 @@ namespace RaportyCoC
 {
     class ElipseCalc
     {
-        Dictionary<double, Tuple<double, double>> CalculateElipsePoints(Dictionary<string, PcbTesterMeasurements> pcbMeasurements, ModelSpecification spec)
+        public static Dictionary<double, Tuple<double, double>> CalculateElipseBorder(Dictionary<string, PcbTesterMeasurements> pcbMeasurements, ModelSpecification spec)
         {
             Dictionary<double, Tuple<double, double>> result = new Dictionary<double, Tuple<double, double>>();
             double thetaRad = (Math.PI / 180) * spec.Theta;

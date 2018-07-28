@@ -1,12 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Drawing;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Windows.Forms.DataVisualization.Charting;
 
 namespace RaportyCoC
 {
@@ -178,5 +180,75 @@ namespace RaportyCoC
             return result;
         }
 
+        private static void SetUpChartParams(Chart chart)
+        {
+            chart.Size = new Size(300, 400);
+        }
+
+        public static void CreateExcelReport(Dictionary<string, PcbTesterMeasurements> measurements, ModelSpecification spec)
+        {
+            Chart vFChart = new Chart();
+            SetUpChartParams(vFChart);
+            Charting.DrawHistogramChart(vFChart, measurements.Select(val => val.Value.Vf).ToList(), spec.Vf_Min, spec.Vf_Max);
+            Bitmap vfChartBmp = Charting.ConvertChartToBmp(vFChart);
+
+            Chart lmChart = new Chart();
+            SetUpChartParams(lmChart);
+            Charting.DrawHistogramChart(lmChart, measurements.Select(val => val.Value.Lm).ToList(), spec.Lm_Min, spec.Lm_Max);
+            Bitmap lmChartBmp = Charting.ConvertChartToBmp(lmChart);
+
+            Chart lmWChart = new Chart();
+            SetUpChartParams(lmWChart);
+            Charting.DrawHistogramChart(lmWChart, measurements.Select(val => val.Value.LmW).ToList(), spec.LmW_Min, 0);
+            Bitmap lmWChartBmp = Charting.ConvertChartToBmp(lmWChart);
+
+            Chart criChart = new Chart();
+            SetUpChartParams(criChart);
+            Charting.DrawHistogramChart(criChart, measurements.Select(val => val.Value.Cri).ToList(), spec.CRI_Min, spec.CRI_Max);
+            Bitmap criChartBmp = Charting.ConvertChartToBmp(criChart);
+
+            Chart ellipseChart = new Chart();
+            SetUpChartParams(ellipseChart);
+            Charting.DrawElipse(ellipseChart, measurements, ElipseCalc.CalculateElipseBorder(measurements, spec));
+            Bitmap ellipseChartBmp = Charting.ConvertChartToBmp(ellipseChart);
+
+            string FilePath = @"Y:\Manufacturing_Center\Integral Quality Management\TemplateCofC.xlsx";
+
+            if (File.Exists(FilePath))
+            {
+                var fs = new FileStream(FilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                var pck = new OfficeOpenXml.ExcelPackage();
+                try
+                {
+                    pck = new OfficeOpenXml.ExcelPackage(fs);
+                }
+                catch (Exception e) { MessageBox.Show(e.Message); }
+
+                if (pck.Workbook.Worksheets.Count != 0)
+                {
+
+                    //foreach (OfficeOpenXml.ExcelWorksheet worksheet in pck.Workbook.Worksheets)
+                    {
+                        OfficeOpenXml.ExcelWorksheet worksheet = pck.Workbook.Worksheets[1];
+
+                        worksheet.Cells[1, 4].Value = "lalala";
+
+                        var picture = worksheet.Drawings.AddPicture("VfChart", vfChartBmp);
+                        picture.SetPosition(2, 0, 3, 0);
+                    }
+                }
+
+                using (SaveFileDialog saveDialog = new SaveFileDialog())
+                {
+                    if (saveDialog.ShowDialog() == DialogResult.OK)
+                    {
+                        Stream stream = File.Create(saveDialog.FileName);
+                        pck.SaveAs(stream);
+                        stream.Close();
+                        System.Diagnostics.Process.Start(saveDialog.FileName);
+                    }
+                }
+            }
+        }
     }
 }

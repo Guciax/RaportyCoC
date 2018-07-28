@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -62,34 +63,91 @@ namespace RaportyCoC
 
                 chart.ChartAreas[0].AxisX.Maximum = uslValue + uslValue * 0.005;
 
-            VerticalLineAnnotation lsl = new VerticalLineAnnotation();
-            lsl.X = lslValue;
-            lsl.LineColor = Color.Red;
-            lsl.LineDashStyle = ChartDashStyle.Dash;
-            lsl.AxisX = chart.ChartAreas[0].AxisX;
-            lsl.ClipToChartArea = chart.ChartAreas[0].Name;
-            lsl.Name = "LSL";
-            lsl.Width = 5;
-            lsl.AnchorX = lslValue;
-            lsl.IsInfinitive = true;
+            if (lslValue > 0)
+            {
+                VerticalLineAnnotation lsl = new VerticalLineAnnotation();
+                lsl.X = lslValue;
+                lsl.LineColor = Color.Red;
+                lsl.LineDashStyle = ChartDashStyle.Dash;
+                lsl.AxisX = chart.ChartAreas[0].AxisX;
+                lsl.ClipToChartArea = chart.ChartAreas[0].Name;
+                lsl.Name = "LSL";
+                lsl.Width = 5;
+                lsl.AnchorX = lslValue;
+                lsl.IsInfinitive = true;
+                chart.Annotations.Add(lsl);
+            }
 
-            VerticalLineAnnotation usl = new VerticalLineAnnotation();
-            usl.X = uslValue;
-            usl.LineColor = Color.Red;
-            usl.LineDashStyle = ChartDashStyle.Dash;
-            usl.AxisX = chart.ChartAreas[0].AxisX;
-            usl.ClipToChartArea = chart.ChartAreas[0].Name;
-            usl.Name = "USL";
-            usl.Width = 5;
-            usl.AnchorX = uslValue;
-            usl.IsInfinitive = true;
-            usl.SmartLabelStyle.Enabled = true;
+            if (uslValue > 0)
+            {
+                VerticalLineAnnotation usl = new VerticalLineAnnotation();
+                usl.X = uslValue;
+                usl.LineColor = Color.Red;
+                usl.LineDashStyle = ChartDashStyle.Dash;
+                usl.AxisX = chart.ChartAreas[0].AxisX;
+                usl.ClipToChartArea = chart.ChartAreas[0].Name;
+                usl.Name = "USL";
+                usl.Width = 5;
+                usl.AnchorX = uslValue;
+                usl.IsInfinitive = true;
+                usl.SmartLabelStyle.Enabled = true;
+                chart.Annotations.Add(usl);
+            }
 
-
-            chart.Annotations.Add(lsl);
-            chart.Annotations.Add(usl);
             chart.Series.Add(histogramSeries);
             chart.Series.Add(normalCurveSeries);
+        }
+
+        public static void DrawElipse(Chart chart, Dictionary<string, PcbTesterMeasurements> measurements, Dictionary<double, Tuple<double, double>> elipseBorder)
+        {
+            chart.Series.Clear();
+            chart.ChartAreas.Clear();
+            chart.Legends.Clear();
+
+            ChartArea ar = new ChartArea();
+
+            Series elipseBorderSeriesPuls = new Series();
+            elipseBorderSeriesPuls.Color = Color.Red;
+
+            Series elipseBorderSeriesMinus = new Series();
+
+            foreach (var point in elipseBorder)
+            {
+                DataPoint ptPlus = new DataPoint();
+                ptPlus.SetValueXY(point.Key, point.Value.Item1);
+                elipseBorderSeriesPuls.Points.Add(ptPlus);
+
+                DataPoint ptMinus = new DataPoint();
+                ptMinus.SetValueXY(point.Key, point.Value.Item2);
+                elipseBorderSeriesMinus.Points.Add(ptMinus);
+            }
+
+            Series measurementsSeries = new Series();
+            measurementsSeries.ChartType = SeriesChartType.Point;
+            measurementsSeries.MarkerSize = 3;
+            measurementsSeries.MarkerStyle = MarkerStyle.Cross;
+
+            foreach (var pcb in measurements)
+            {
+                DataPoint pt = new DataPoint();
+                pt.SetValueXY(pcb.Value.Cx, pcb.Value.Cy);
+                measurementsSeries.Points.Add(pt);
+            }
+
+            chart.Series.Add(measurementsSeries);
+            chart.Series.Add(elipseBorderSeriesPuls);
+            chart.Series.Add(elipseBorderSeriesMinus);
+        }
+
+        public static Bitmap ConvertChartToBmp(Chart chart)
+        {
+            Bitmap result;
+            using (MemoryStream ms = new MemoryStream())
+            {
+                chart.SaveImage(ms, ChartImageFormat.Jpeg);
+                result = new Bitmap(ms);
+            }
+            return result;
         }
     }
 }
