@@ -8,7 +8,7 @@ namespace RaportyCoC
 {
     class PcbTesterMeasurements
     {
-        public PcbTesterMeasurements(double Cx, double Cy, double Sdcm, double Cct, DateTime inspectionTime, string model, double vf, double lm, double lmW, double cri, double cct)
+        public PcbTesterMeasurements(double Cx, double Cy, double Sdcm, double Cct, DateTime inspectionTime, string model, double vf, double lm, double lmW, double cri, double cct, string orderNo)
         {
             this.Cx = Cx;
             this.Cy = Cy;
@@ -21,6 +21,7 @@ namespace RaportyCoC
             LmW = lmW;
             Cri = cri;
             Cct1 = cct;
+            OrderNo = orderNo;
         }
 
         public double Cx { get; }
@@ -34,5 +35,6 @@ namespace RaportyCoC
         public double LmW { get; }
         public double Cri { get; }
         public double Cct1 { get; }
+        public string OrderNo { get; }
     }
 }

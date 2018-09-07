@@ -8,7 +8,8 @@ namespace RaportyCoC
 {
     class ModelSpecification
     {
-        public ModelSpecification(double maxSdcm, double Cx, double Cy, double A, double B, double C, double D, double theta, double variable, double cctMin, double cctMax, double Vf_min, double Vf_max, double lm_min, double lm_max, double lmW_min, double CRI_min, double CRI_max, double currentForward)
+        public ModelSpecification(double maxSdcm, double Cx, double Cy, double A, double B, double C, double D, double theta, double variable, double cctMin, double cctMax, double Vf_min, double Vf_max, double lm_min, double lm_max, double lmW_min, double CRI_min, double CRI_max, double currentForward, string tridonicCustomerNumner, string tridonicDescription, string lgitName, string lgitDescription, string[] boxes, string orderNo)
+
         {
             MaxSdcm = maxSdcm;
             this.Cx = Cx;
@@ -29,6 +30,12 @@ namespace RaportyCoC
             CRI_Min = CRI_min;
             CRI_Max = CRI_max;
             CurrentForward = currentForward;
+            TridonicCustomerNumner = tridonicCustomerNumner;
+            TridonicDescription = tridonicDescription;
+            LgitName = lgitName;
+            LgitDescription = lgitDescription;
+            Boxes = boxes;
+            OrderNo = orderNo;
         }
 
         public double MaxSdcm { get; }
@@ -50,5 +57,11 @@ namespace RaportyCoC
         public double CRI_Min { get; set; }
         public double CRI_Max { get; set; }
         public double CurrentForward { get; set; }
+        public string TridonicCustomerNumner { get; }
+        public string TridonicDescription { get; }
+        public string LgitName { get; }
+        public string LgitDescription { get; }
+        public string[] Boxes { get; }
+        public string OrderNo { get; set; }
     }
 }

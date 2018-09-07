@@ -28,22 +28,26 @@ namespace RaportyCoC
             return result;
         }
 
-        public static DataTable makeSdcmTable(Dictionary<string, PcbTesterMeasurements> testResults, Dictionary<string, ModelSpecification> modelSPecification, ref string currentModel)
+        public static bool CheckTestMeasurements(Dictionary<string, PcbTesterMeasurements> testResults, Dictionary<string, ModelSpecification> modelSPecification, ref string currentModel, DataGridView grid, Label infoLabel)
         {
-            DataTable result = new DataTable();
+            bool result = true;
+            DataTable ngResult = new DataTable();
+            DataTable okResult = new DataTable();
+
             HashSet<string> modelCheck = new HashSet<string>();
-            result.Columns.Add("serial_No");
+            ngResult.Columns.Add("serial_No");
             Dictionary<string, int[]> indexOfNg = new Dictionary<string, int[]>();
 
-            result.Columns.Add("SDCM", typeof(double));
-            result.Columns.Add("Vf", typeof(double));
-            result.Columns.Add("lm", typeof(double));
-            result.Columns.Add("lm_w", typeof(double));
-            result.Columns.Add("CRI", typeof(double));
-            result.Columns.Add("CCT", typeof(double));
-            result.Columns.Add("Cx", typeof(double));
-            result.Columns.Add("Cy", typeof(double));
-            result.Columns.Add("WYNIK");
+            ngResult.Columns.Add("SDCM", typeof(double));
+            ngResult.Columns.Add("Vf", typeof(double));
+            ngResult.Columns.Add("lm", typeof(double));
+            ngResult.Columns.Add("lm_w", typeof(double));
+            ngResult.Columns.Add("CRI", typeof(double));
+            ngResult.Columns.Add("CCT", typeof(double));
+            ngResult.Columns.Add("Cx", typeof(double));
+            ngResult.Columns.Add("Cy", typeof(double));
+            ngResult.Columns.Add("WYNIK");
+            okResult = ngResult.Clone();
 
             foreach (var testedPcb in testResults)
             {
@@ -88,10 +92,17 @@ namespace RaportyCoC
                     if (!allOK)
                     {
                         testResult = "NG";
+                        ngResult.Rows.Add(testedPcb.Key, sdcm, testedPcb.Value.Vf, testedPcb.Value.Lm, testedPcb.Value.LmW, testedPcb.Value.Cri, testedPcb.Value.Cct, testedPcb.Value.Cx, testedPcb.Value.Cy, testResult);
+                        result = false;
                     }
+                    else
+                    {
+                        okResult.Rows.Add(testedPcb.Key, sdcm, testedPcb.Value.Vf, testedPcb.Value.Lm, testedPcb.Value.LmW, testedPcb.Value.Cri, testedPcb.Value.Cct, testedPcb.Value.Cx, testedPcb.Value.Cy, testResult);
+                    }
+
                     
                     //result.Rows.Add(testedPcb.Key, model, modelSPecification[model].Cx + "x" + modelSPecification[model].Cy + "  CCT="+ modelSPecification[model].Cct+"K" , testedPcb.Value.Cx, testedPcb.Value.Cy, modelSPecification[model].MaxSdcm, sdcm);
-                    result.Rows.Add(testedPcb.Key, sdcm, testedPcb.Value.Vf, testedPcb.Value.Lm, testedPcb.Value.LmW, testedPcb.Value.Cri, testedPcb.Value.Cct, testedPcb.Value.Cx, testedPcb.Value.Cy, testResult);
+                    
                 }
                 else
                 {
@@ -106,7 +117,10 @@ namespace RaportyCoC
                     break;
                 }
 
+                
+
             }
+
             if (modelCheck.Count > 1)
             {
                 string msg = "Uwaga wykryto pomeszane modele!" + Environment.NewLine;
@@ -114,6 +128,7 @@ namespace RaportyCoC
                 {
                     msg += mdl + Environment.NewLine;
                     currentModel = "Kilka modeli!!";
+                    result = false;
                 }
                 MessageBox.Show(msg);
             }
@@ -123,6 +138,9 @@ namespace RaportyCoC
             }
 
             //result.DefaultView.Sort = "Wynik_SDCM DESC";
+            grid.DataSource = ngResult;
+            infoLabel.Text = "Model: " + currentModel + Environment.NewLine + "OK: " + okResult.Rows.Count + Environment.NewLine + "NG: " + ngResult.Rows.Count;
+
             return result;
         }
     }

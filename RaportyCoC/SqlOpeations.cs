@@ -6,11 +6,54 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 
 namespace RaportyCoC
 {
     class SqlOpeations
     {
+        public static List<string> GetBoxesIdFromPalletId(string[] pallets)
+        {
+            HashSet<string> result = new HashSet<string>();
+            DataTable sqlTable = new DataTable();
+            SqlConnection conn = new SqlConnection();
+            conn.ConnectionString = @"Data Source=MSTMS010;Initial Catalog=MES;User Id=mes;Password=mes;";
+
+            SqlCommand command = new SqlCommand();
+            command.Connection = conn;
+            command.CommandText = String.Format(@"SELECT distinct Box_LOT_NO,Palet_LOT_NO FROM tb_WyrobLG_opakowanie WHERE ");
+
+            for (int i = 0; i < pallets.Length; i++)
+            {
+                if (i == 0)
+                {
+                    command.CommandText += "Palet_LOT_NO = @" + i + "box";
+                    command.Parameters.AddWithValue("@" + i + "box", pallets[i]);
+                }
+                else
+                {
+                    command.CommandText += " OR Palet_LOT_NO = @" + i + "box";
+                    command.Parameters.AddWithValue("@" + i + "box", pallets[i]);
+                }
+            }
+
+            command.CommandText += ";";
+            SqlDataAdapter adapter = new SqlDataAdapter(command);
+            try
+            {
+                adapter.Fill(sqlTable);
+            }
+            catch (SqlException ex)
+            {
+                MessageBox.Show(ex.Message + Environment.NewLine + ex.HResult);
+            }
+            foreach (DataRow row in sqlTable.Rows)
+            {
+                result.Add(row["Box_LOT_NO"].ToString());
+            }
+            return result.ToList();
+        }
+
         public static Dictionary<string, PcbTesterMeasurements> GetMeasurementsForBoxes(string[] boxesId)
         {
             DataTable sqlTable = new DataTable();
@@ -19,7 +62,7 @@ namespace RaportyCoC
 
             SqlCommand command = new SqlCommand();
             command.Connection = conn;
-            command.CommandText = String.Format(@"SELECT serial_no,inspection_time,wip_entity_name,sdcm,cct,lm,lm_w,cri,cct,v,x,y,Box_LOT_NO,NC12,result FROM v_tester_measurements_all WHERE (");
+            command.CommandText = String.Format(@"SELECT serial_no,inspection_time,wip_entity_name,sdcm,cct,lm,lm_w,cri,cct,v,x,y,Box_LOT_NO,NC12,result,CUSTOMER_ORDER_NO FROM v_tester_measurements_all WHERE (");
 
             for (int i = 0; i < boxesId.Length; i++)
             {
@@ -30,7 +73,7 @@ namespace RaportyCoC
                 }
                 else
                 {
-                    command.CommandText += "OR Box_LOT_NO = @" + i + "box";
+                    command.CommandText += " OR Box_LOT_NO = @" + i + "box";
                     command.Parameters.AddWithValue("@" + i + "box", boxesId[i]);
                 }
             }
@@ -38,6 +81,70 @@ namespace RaportyCoC
             command.CommandText += ") AND result='OK' ORDER BY inspection_time DESC;";
             SqlDataAdapter adapter = new SqlDataAdapter(command);
             adapter.Fill(sqlTable);
+
+            return dataTableToDict(sqlTable);
+        }
+
+        public static Dictionary<string, PcbTesterMeasurements> GetMeasurementsForOrderNo(List<string> orderNumbers)
+        {
+            DataTable sqlTable = new DataTable();
+            SqlConnection conn = new SqlConnection();
+            conn.ConnectionString = @"Data Source=MSTMS010;Initial Catalog=MES;User Id=mes;Password=mes;";
+
+            SqlCommand command = new SqlCommand();
+            command.Connection = conn;
+            command.CommandText = String.Format(@"SELECT serial_no,Wysylki_Data,inspection_time,wip_entity_name,sdcm,cct,lm,lm_w,cri,cct,v,x,y,Box_LOT_NO,NC12,result,CUSTOMER_ORDER_NO FROM v_tester_measurements_all WHERE (");
+            for (int i=0;i<orderNumbers.Count;i++)
+            {
+                if (i==0)
+                {
+                    command.CommandText += "CUSTOMER_ORDER_NO=@order" + i;
+                    command.Parameters.AddWithValue("@order"+i, orderNumbers[i]);
+                }
+                else
+                {
+                    command.CommandText += " OR CUSTOMER_ORDER_NO=@order" + i + " ";
+                    command.Parameters.AddWithValue("@order" + i, orderNumbers[i]);
+                }
+            }
+            command.CommandText+=") AND result = 'OK' ORDER BY inspection_time DESC; ";
+            
+            SqlDataAdapter adapter = new SqlDataAdapter(command);
+            adapter.Fill(sqlTable);
+
+            HashSet<string> datesOfShipping = new HashSet<string>();
+            foreach (DataRow     row     in sqlTable.Rows)
+            {
+                datesOfShipping.Add(row["Wysylki_Data"].ToString());
+            }
+
+            List<string> choosenDates = datesOfShipping.ToList();
+            
+            if (datesOfShipping.Count>0)
+            {
+                using (chooseDateOfShipment chooseForm = new chooseDateOfShipment(datesOfShipping.ToList()))
+                {
+                    if (chooseForm.ShowDialog() == DialogResult.OK)
+                    {
+                        choosenDates.Clear();
+                        choosenDates = chooseForm.choosenDates;
+                    }
+
+                }
+
+                DataTable tempTable = sqlTable.Clone();
+                foreach (DataRow row in sqlTable.Rows)
+                {
+                    if (choosenDates.Contains( row["Wysylki_Data"].ToString()))
+                    {
+                        tempTable.Rows.Add(row.ItemArray);
+                    }
+                }
+
+                sqlTable = tempTable;
+            }
+            
+            
 
             return dataTableToDict(sqlTable);
         }
@@ -50,7 +157,7 @@ namespace RaportyCoC
 
             SqlCommand command = new SqlCommand();
             command.Connection = conn;
-            command.CommandText = String.Format(@"SELECT serial_no,inspection_time,wip_entity_name,sdcm,cct,lm,lm_w,cri,cct,v,x,y,Box_LOT_NO,Palet_LOT_NO,NC12,result FROM v_tester_measurements_all WHERE (");
+            command.CommandText = String.Format(@"SELECT serial_no,inspection_time,wip_entity_name,sdcm,cct,lm,lm_w,cri,cct,v,x,y,Box_LOT_NO,Palet_LOT_NO,NC12,result,CUSTOMER_ORDER_NO FROM v_tester_measurements_all WHERE (");
 
             for (int i = 0; i < palletsID.Length; i++)
             {
@@ -89,13 +196,15 @@ namespace RaportyCoC
                 foreach (DataRow row in sqlTable.Rows)
                 {
                     string serial = row["serial_no"].ToString();
-                    if (result.ContainsKey(serial)) continue;
+                    if (result.ContainsKey(serial))
+                        continue;
 
                     string lot = row["wip_entity_name"].ToString();
                     string model = "";
 
-                    if (!IsInt(lot)) continue;
-
+                    if (!IsInt(lot))
+                        continue;
+                    string orderNo = row["CUSTOMER_ORDER_NO"].ToString();
 
                     model = row["NC12"].ToString();
                     if (!lotToModel.ContainsKey(lot))
@@ -104,9 +213,11 @@ namespace RaportyCoC
                     }
                     string cxString = row["x"].ToString().Replace(".", ",");
                     string cyString = row["y"].ToString().Replace(".", ",");
-                    if (cxString == "" || cyString == "") continue;
+                    if (cxString == "" || cyString == "")
+                        continue;
 
-                    if (model == "") continue;
+                    if (model == "")
+                        continue;
                     double cx = Convert.ToDouble(cxString, new CultureInfo("pl-PL"));
                     double cy = double.Parse(row["y"].ToString().Replace(".", ","));
                     double sdcm = double.Parse(row["sdcm"].ToString());
@@ -118,7 +229,7 @@ namespace RaportyCoC
 
                     DateTime inspTime = DateTime.Parse(row["inspection_time"].ToString());
 
-                    PcbTesterMeasurements newPcb = new PcbTesterMeasurements(cx, cy, sdcm, cct, inspTime, model, vf, lm, lmW, cri, cct);
+                    PcbTesterMeasurements newPcb = new PcbTesterMeasurements(cx, cy, sdcm, cct, inspTime, model, vf, lm, lmW, cri, cct, orderNo);
                     result.Add(serial, newPcb);
                 }
 
@@ -165,7 +276,7 @@ namespace RaportyCoC
 
                 if (!inputData.ContainsKey(model))
                 {
-                    inputData.Add(model, new ModelSpecification(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+                    inputData.Add(model, new ModelSpecification(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "","","","",null,""));
                 }
                 double minCct = Math.Round(cct * 0.9, 0);
                 double maxCct = Math.Round(cct * 1.1, 0);

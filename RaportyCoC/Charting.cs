@@ -15,10 +15,18 @@ namespace RaportyCoC
         {
             SortedDictionary<double, int> histogram = Histogram.CalculateHistogram(values);
             SortedDictionary<double, double> normalCurve = Histogram.CalculateHistogramNormal(histogram, values);
+            double maxX = Math.Max(histogram.Select(x => x.Key).Max(), normalCurve.Select(x => x.Key).Max()) * 1.1;
+            double maxY = histogram.Select(y => y.Value).Max()*1.1;
+            double minX = Math.Min(histogram.Select(x => x.Key).Min(), normalCurve.Select(x => x.Key).Min())*0.9;
+            double minY = histogram.Select(y => y.Value).Min()*0.9;
+            double maxYNormal = normalCurve.Select(max => max.Value).Max() * 1.15;
+            double mean = normalCurve.Aggregate((l, r) => l.Value > r.Value ? l : r).Key;
+
 
             chart.Series.Clear();
             chart.Legends.Clear();
             chart.ChartAreas.Clear();
+            chart.Annotations.Clear();
 
             ChartArea ar = new ChartArea();
             ar.AxisX.MajorGrid.Enabled = false;
@@ -28,11 +36,17 @@ namespace RaportyCoC
             ar.AxisY2.MajorGrid.Enabled = false;
             ar.AxisY.LabelStyle.Enabled = false;
             ar.AxisY2.LabelStyle.Enabled = false;
-            ar.AxisX.LabelStyle.Format = "{0}";
+            ar.AxisX.IsLabelAutoFit = false;
+            ar.AxisX.Minimum = minX;
+            ar.AxisX.Maximum = maxX;
+            ar.AxisY.Minimum = 0;
+            ar.AxisY.Maximum = maxY;
+            ar.AxisY2.Maximum = maxYNormal;
+            
             chart.ChartAreas.Add(ar);
 
             Series normalCurveSeries = new Series();
-            normalCurveSeries.ChartType = SeriesChartType.FastLine;
+            normalCurveSeries.ChartType = SeriesChartType.Spline;
             normalCurveSeries.BorderDashStyle = ChartDashStyle.Dash;
             normalCurveSeries.BorderWidth = 1;
             normalCurveSeries.Color = Color.Black;
@@ -57,14 +71,19 @@ namespace RaportyCoC
                 normalCurveSeries.Points.Add(pt);
             }
 
-
-                chart.ChartAreas[0].AxisX.Minimum = lslValue - lslValue * 0.005;
-
-
-                chart.ChartAreas[0].AxisX.Maximum = uslValue + uslValue * 0.005;
+            double maxValue = histogram.Keys.Max();
+            double minValue = histogram.Keys.Min();
 
             if (lslValue > 0)
             {
+                if (minValue > lslValue)
+                {
+                    chart.ChartAreas[0].AxisX.Minimum = lslValue * 0.995;
+                }
+                else
+                {
+                    chart.ChartAreas[0].AxisX.Minimum = minValue * 0.995;
+                }
                 VerticalLineAnnotation lsl = new VerticalLineAnnotation();
                 lsl.X = lslValue;
                 lsl.LineColor = Color.Red;
@@ -76,10 +95,35 @@ namespace RaportyCoC
                 lsl.AnchorX = lslValue;
                 lsl.IsInfinitive = true;
                 chart.Annotations.Add(lsl);
+
+                RectangleAnnotation lslLabel = new RectangleAnnotation();
+                lslLabel.AnchorY = maxY;
+                lslLabel.AnchorX = lslValue;
+                lslLabel.AnchorDataPoint = histogramSeries.Points[0];
+                lslLabel.Font = new Font("Arial Narrow", 9, FontStyle.Bold);
+                lslLabel.AnchorOffsetY = -5;
+                lslLabel.AnchorOffsetX = 0;
+                lslLabel.AnchorAlignment = ContentAlignment.MiddleLeft;
+                lslLabel.Text = "LSL";
+                lslLabel.BackColor = Color.White;
+                lslLabel.LineWidth = 0;
+                chart.Annotations.Add(lslLabel);
+            }
+            else
+            {
+                chart.ChartAreas[0].AxisX.Minimum = minValue * 0.995;
             }
 
             if (uslValue > 0)
             {
+                if (uslValue > maxValue)
+                {
+                    chart.ChartAreas[0].AxisX.Maximum =  uslValue * 1.005;
+                }
+                else
+                {
+                    chart.ChartAreas[0].AxisX.Maximum = maxValue * 1.005;
+                }
                 VerticalLineAnnotation usl = new VerticalLineAnnotation();
                 usl.X = uslValue;
                 usl.LineColor = Color.Red;
@@ -92,7 +136,44 @@ namespace RaportyCoC
                 usl.IsInfinitive = true;
                 usl.SmartLabelStyle.Enabled = true;
                 chart.Annotations.Add(usl);
+
+                RectangleAnnotation uslLabel = new RectangleAnnotation();
+                uslLabel.AnchorY = maxY;
+                uslLabel.AnchorX = uslValue;
+                uslLabel.AnchorDataPoint = histogramSeries.Points[histogramSeries.Points.Count - 1];
+                uslLabel.Font = new Font("Arial Narrow", 9, FontStyle.Bold);
+                uslLabel.AnchorOffsetY = -5;     // *
+                uslLabel.AnchorAlignment = ContentAlignment.MiddleLeft;
+                uslLabel.Text = "USL";
+                uslLabel.BackColor = Color.White;
+                uslLabel.LineWidth = 0;
+                chart.Annotations.Add(uslLabel);
             }
+            else
+            {
+                chart.ChartAreas[0].AxisX.Maximum = maxValue * 1.005;
+            }
+
+            if (ar.AxisX.Maximum-ar.AxisX.Minimum > 20)
+            {
+                ar.AxisX.LabelStyle.Format = "{0}";
+            }
+            else
+            {
+                ar.AxisX.LabelStyle.Format = "{0.0}";
+            }
+
+            VerticalLineAnnotation meanLine = new VerticalLineAnnotation();
+            meanLine.X = mean;
+            meanLine.LineColor = Color.Lime;
+            meanLine.LineDashStyle = ChartDashStyle.Dash;
+            meanLine.AxisX = chart.ChartAreas[0].AxisX;
+            meanLine.ClipToChartArea = chart.ChartAreas[0].Name;
+            meanLine.Name = "mean";
+            meanLine.Width = 10;
+            meanLine.AnchorX = lslValue;
+            meanLine.IsInfinitive = true;
+            chart.Annotations.Add(meanLine);
 
             chart.Series.Add(histogramSeries);
             chart.Series.Add(normalCurveSeries);
@@ -105,11 +186,22 @@ namespace RaportyCoC
             chart.Legends.Clear();
 
             ChartArea ar = new ChartArea();
+            ar.AxisX.LabelStyle.Format = "{0.0000}";
+            ar.AxisX.IsLabelAutoFit = false;
+            ar.AxisY.LabelStyle.Format = "{0.0000}";
+            ar.AxisY.IsLabelAutoFit = false;
+            ar.AxisX.MajorGrid.Enabled = false;
+            ar.AxisY.MajorGrid.Enabled = false;
 
             Series elipseBorderSeriesPuls = new Series();
             elipseBorderSeriesPuls.Color = Color.Red;
+            elipseBorderSeriesPuls.ChartType = SeriesChartType.FastLine;
+            elipseBorderSeriesPuls.BorderWidth = 3;
 
             Series elipseBorderSeriesMinus = new Series();
+            elipseBorderSeriesMinus.Color = Color.Red;
+            elipseBorderSeriesMinus.ChartType = SeriesChartType.FastLine;
+            elipseBorderSeriesMinus.BorderWidth = 3;
 
             foreach (var point in elipseBorder)
             {
@@ -123,9 +215,10 @@ namespace RaportyCoC
             }
 
             Series measurementsSeries = new Series();
+            measurementsSeries.Color = Color.DarkSeaGreen;
             measurementsSeries.ChartType = SeriesChartType.Point;
-            measurementsSeries.MarkerSize = 3;
-            measurementsSeries.MarkerStyle = MarkerStyle.Cross;
+            measurementsSeries.MarkerSize = 4;
+            measurementsSeries.MarkerStyle = MarkerStyle.Circle;
 
             foreach (var pcb in measurements)
             {
@@ -134,6 +227,13 @@ namespace RaportyCoC
                 measurementsSeries.Points.Add(pt);
             }
 
+            double max = ar.AxisY.Maximum;
+            double min = ar.AxisY.Minimum;
+
+            ar.AxisY.Maximum = elipseBorder.Select(val => val.Value.Item1).Max()*1.01;
+            ar.AxisY.Minimum = elipseBorder.Select(val => val.Value.Item2).Min()*0.99;
+
+            chart.ChartAreas.Add(ar);
             chart.Series.Add(measurementsSeries);
             chart.Series.Add(elipseBorderSeriesPuls);
             chart.Series.Add(elipseBorderSeriesMinus);
@@ -142,11 +242,16 @@ namespace RaportyCoC
         public static Bitmap ConvertChartToBmp(Chart chart)
         {
             Bitmap result;
+            
             using (MemoryStream ms = new MemoryStream())
             {
-                chart.SaveImage(ms, ChartImageFormat.Jpeg);
+                chart.SaveImage(ms, ChartImageFormat.Bmp);
                 result = new Bitmap(ms);
             }
+
+            chart.DrawToBitmap(result, new Rectangle(0, 0, result.Width, result.Height));
+
+            //chart.SaveImage(@"H:\" + chart.Name+".png", ChartImageFormat.Png);
             return result;
         }
     }

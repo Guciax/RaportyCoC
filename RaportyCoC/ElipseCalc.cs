@@ -23,8 +23,8 @@ namespace RaportyCoC
 
                 double b = 2 * dx * (1 / Math.Pow(spec.C, 2) - 1 / Math.Pow(spec.D, 2)) * Math.Sin(thetaRad) * Math.Cos(thetaRad);
                 double c = g11 * Math.Pow(dx, 2) - Math.Pow(spec.MaxSdcm, 2);
-                double dYplus = -b + Math.Sqrt(Math.Pow(b, 2) - 4 * a * c) / (2 * a);
-                double dYminus = -b - Math.Sqrt(Math.Pow(b, 2) - 4 * a * c) / (2 * a);
+                double dYplus = (-b + Math.Sqrt(Math.Pow(b, 2) - 4 * a * c)) / (2 * a);
+                double dYminus = (-b - Math.Sqrt(Math.Pow(b, 2) - 4 * a * c)) / (2 * a);
                 double Yplus = spec.Cy + dYplus;
                 double Yminus = spec.Cy + dYminus;
 

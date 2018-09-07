@@ -41,12 +41,38 @@ namespace RaportyCoC
             double mean = values.Average();
             double sumOfSquaresOfDifferences = values.Select(val => (val - mean) * (val - mean)).Sum();
             double stdDev = Math.Sqrt(sumOfSquaresOfDifferences / values.Count);
-            double deviationSq = values.Select(x => Math.Pow(x - mean, 2)).Average();
+            double deviationSq = values.Select(xx => Math.Pow(xx - mean, 2)).Average();
+            double variance = stdDev * stdDev;
 
-            foreach (var x in histogram)
+            double step = (histogram.Select(max => max.Key).Max() - histogram.Select(min => min.Key).Min()) / (histogram.Count);
+
+            int i = 0;
+            double x = 0;
+            double y = 0;
+            do
             {
-                result.Add(x.Key, F(x.Key, mean, stdDev));
-            }
+                x = mean - step * i;
+                y = NormalDistribution(x, mean, variance);
+                result.Add(x, y);
+                i++;
+            } while (y > 0.001);
+
+            i = 0;
+            y = 1000;
+            do
+            {
+                i++;
+                x = mean + step * i;
+                y = NormalDistribution(x, mean, variance);
+                result.Add(x, y);
+            } while (y > 0.001);
+
+
+
+            //foreach (var x in histogram)
+            //{
+            //    result.Add(x.Key, NormalDistribution(x.Key, mean, stdDev));
+            //}
 
             return result;
         }
@@ -64,6 +90,12 @@ namespace RaportyCoC
         {
             double var = Math.Pow(stddev, 2);
             return ((0.5 / Math.PI) * Math.Exp(-(x - mean) * (x - mean) / (2 * var)));
+        }
+
+        private static double NormalDistribution(double x, double mean, double variance)
+        {
+            double power = -Math.Pow((x - mean), 2) / (2 * variance);
+            return 1 / (Math.Sqrt(2 * Math.PI)) * Math.Pow(Math.E, power);
         }
     }
 }
